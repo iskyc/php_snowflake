@@ -4,7 +4,7 @@ Check for php_snowflake presence
 <?php if (!extension_loaded("php_snowflake")) print "skip"; ?>
 --FILE--
 <?php 
-if (strlen(PhpSnowFlake::nextId(999)) == 32) {
+if (strlen(PhpSnowFlake::nextId(999)) == 16) {
     echo 'php_snowflake extension is available'
 }
 ?>
