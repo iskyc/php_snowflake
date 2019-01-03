@@ -22,7 +22,7 @@
 #include "config.h"
 #endif
 
-#define MAX_SEQUENCE 8191
+#define MAX_SEQUENCE 4095
 
 #include <unistd.h>
 #include <string.h>
@@ -65,8 +65,14 @@ static void next_id(char *id) {
 	TSRMLS_FETCH();
 #endif
 	zend_long ts;
+	zend_long ret;
+	zend_long tmp;
+	zend_long tmp2;
 
 	ts = time_gen();
+	ret = 0;
+	tmp = 0;
+	tmp2 = 0;
 
 	if (ts == PHP_SNOWFLAKE_G(last_time_stamp)) {
 		PHP_SNOWFLAKE_G(sequence) = (PHP_SNOWFLAKE_G(sequence)+1) & MAX_SEQUENCE;
@@ -81,7 +87,14 @@ static void next_id(char *id) {
 	if (ts < PHP_SNOWFLAKE_G(last_time_stamp)) {
 		strcpy(id, NULL);
 	} else {
-		sprintf(id, "00%ld%05ld%08ld%04d", ts, PHP_SNOWFLAKE_G(service_no), PHP_SNOWFLAKE_G(worker_id), PHP_SNOWFLAKE_G(sequence));
+		ret = ts;
+		tmp = PHP_SNOWFLAKE_G(service_no);
+		tmp2 = PHP_SNOWFLAKE_G(sequence);
+		ret <<= 22;
+		ret |= (tmp << 12);
+		ret |= tmp2;
+		sprintf(id, "%016llX", ret);	
+		// sprintf(id, "%ld%ld%ld%d", ts, PHP_SNOWFLAKE_G(service_no), PHP_SNOWFLAKE_G(worker_id), PHP_SNOWFLAKE_G(sequence));
 	}
 }
 
@@ -95,9 +108,8 @@ PHP_METHOD(PhpSnowFlake, nextId) {
 		, "l", &PHP_SNOWFLAKE_G(service_no)) == FAILURE) {
 		RETURN_FALSE;
 	}
-
-	if (PHP_SNOWFLAKE_G(service_no)>99999 | PHP_SNOWFLAKE_G(service_no)<0) {
-		zend_error(E_ERROR, "service_no in the range of 0,99999");
+	if (PHP_SNOWFLAKE_G(service_no)>1023 | PHP_SNOWFLAKE_G(service_no)<0) {
+		zend_error(E_ERROR, "service_no in the range of 0,1023");
 	}
 
 	next_id(id);
